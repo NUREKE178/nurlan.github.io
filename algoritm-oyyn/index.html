@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Алгоритм патшалығы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Схема/blueprint парағы: торлы қағаз негіз, бұрыштық-жақша панельдер — техникалық сызбаның эстетикасы. */
+:root{
+  --bg:#eef2f7; --bg-grid:rgba(20,40,70,.07);
+  --surface:#ffffff; --surface-2:#e3eaf3;
+  --ink:#16213a; --ink-soft:#54637f;
+  --accent:#e8631c; --accent-soft:#ffe2cc; --accent-ink:#ffffff;
+  --accent2:#157d8c; --accent2-soft:#d7eef1;
+  --success:#2f9e44; --success-soft:#dff5e3;
+  --danger:#e03131; --danger-soft:#fce3e3;
+  --line:rgba(22,33,58,.16); --line-strong:rgba(22,33,58,.3);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1524; --bg-grid:rgba(255,255,255,.06);
+    --surface:#162138; --surface-2:#1c2a46;
+    --ink:#e9eef7; --ink-soft:#9fb0cc;
+    --accent:#ff9d57; --accent-soft:#3a2615; --accent-ink:#1a1206;
+    --accent2:#5ad2e6; --accent2-soft:#123640;
+    --success:#51cf66; --success-soft:#143321;
+    --danger:#ff6b6b; --danger-soft:#3a1616;
+    --line:rgba(255,255,255,.14); --line-strong:rgba(255,255,255,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1524; --bg-grid:rgba(255,255,255,.06);
+  --surface:#162138; --surface-2:#1c2a46;
+  --ink:#e9eef7; --ink-soft:#9fb0cc;
+  --accent:#ff9d57; --accent-soft:#3a2615; --accent-ink:#1a1206;
+  --accent2:#5ad2e6; --accent2-soft:#123640;
+  --success:#51cf66; --success-soft:#143321;
+  --danger:#ff6b6b; --danger-soft:#3a1616;
+  --line:rgba(255,255,255,.14); --line-strong:rgba(255,255,255,.3);
+  color-scheme: dark;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  background-color:var(--bg);
+  background-image:
+    linear-gradient(var(--bg-grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--bg-grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  color:var(--ink);
+  font-family:'Work Sans',system-ui,sans-serif;
+  padding-inline:16px;
+  padding-block:28px 60px;
+}
+h1,h2,h3,.disp{font-family:'Fredoka',system-ui,sans-serif; font-weight:600; text-wrap:balance;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:22px;}
+[hidden]{display:none!important;}
+
+/* ---------- header ---------- */
+.kicker{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.12em;color:var(--accent2);font-weight:600;}
+header.hero{display:flex;flex-direction:column;gap:10px;padding-block:6px 4px;}
+h1.title{font-size:clamp(1.7rem,5vw,2.5rem);margin:0;line-height:1.1;}
+.sub{color:var(--ink-soft);font-size:1rem;max-width:62ch;margin:0;}
+.hero-scene{display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap;}
+.bot-badge{width:56px;height:56px;border-radius:14px;background:var(--accent);position:relative;flex:none;box-shadow:0 2px 0 var(--line-strong) inset;}
+.bot-badge::before{content:"";position:absolute;left:50%;top:-9px;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:14px solid var(--accent);transform:translateX(-50%);}
+.bot-badge::after{content:"";position:absolute;left:15px;top:20px;width:8px;height:8px;border-radius:50%;background:var(--accent-ink);box-shadow:18px 0 0 var(--accent-ink);opacity:.85;}
+.dashpath{flex:1;min-width:120px;height:0;border-top:3px dashed var(--line-strong);position:relative;}
+.dashpath::after{content:"▶";position:absolute;right:-2px;top:-11px;color:var(--line-strong);font-size:.8rem;}
+.goal-badge{width:40px;height:40px;flex:none;position:relative;}
+.goal-badge svg{width:100%;height:100%;}
+
+/* ---------- step nav ---------- */
+nav.steps{display:flex;gap:8px;flex-wrap:wrap;padding-block:4px;}
+nav.steps a{
+  font-family:'IBM Plex Mono',monospace;font-size:.74rem;font-weight:600;
+  color:var(--ink-soft);text-decoration:none;padding:7px 12px;border-radius:7px;
+  background:var(--surface);border:1px solid var(--line);white-space:nowrap;
+}
+nav.steps a:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* ---------- grade switcher ---------- */
+.gradebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.gradebar .gl{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--ink-soft);font-weight:600;}
+.gradebtn{
+  font-family:'Fredoka';font-weight:600;font-size:.92rem;padding:9px 18px;border-radius:9px;cursor:pointer;
+  border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);
+}
+.gradebtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+.planbox{
+  font-size:.84rem;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);
+  border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;
+}
+.planbox b{color:var(--ink);font-family:'Fredoka';}
+.planbox .prow{display:flex;justify-content:space-between;gap:10px;}
+.planbox .prow.total{border-top:1px dashed var(--line-strong);margin-top:4px;padding-top:6px;font-weight:700;color:var(--ink);}
+
+/* ---------- panels (blueprint corner-bracket) ---------- */
+.panel{
+  position:relative;background:var(--surface);border:1px solid var(--line);
+  border-radius:4px;padding:22px clamp(16px,4vw,28px);
+}
+.panel::before,.panel::after,.panel .bl,.panel .br{
+  content:"";position:absolute;width:16px;height:16px;border-color:var(--accent2);pointer-events:none;
+}
+.panel::before{top:-1px;left:-1px;border-top:2px solid var(--accent2);border-left:2px solid var(--accent2);}
+.panel::after{top:-1px;right:-1px;border-top:2px solid var(--accent2);border-right:2px solid var(--accent2);}
+.panel .bl{bottom:-1px;left:-1px;border-bottom:2px solid var(--accent2);border-left:2px solid var(--accent2);}
+.panel .br{bottom:-1px;right:-1px;border-bottom:2px solid var(--accent2);border-right:2px solid var(--accent2);}
+.panel-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.panel-head h2{font-size:1.3rem;margin:0;}
+.tag{
+  font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:600;letter-spacing:.06em;
+  padding:3px 9px;border-radius:5px;background:var(--accent2-soft);color:var(--accent2);white-space:nowrap;
+}
+.tag.amber{background:var(--accent-soft);color:var(--accent);}
+p.lead{color:var(--ink-soft);margin:0 0 14px;max-width:70ch;}
+
+/* ---------- concept chips (intro) ---------- */
+.concepts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:10px;}
+.concept{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);}
+.concept svg{flex:none;width:30px;height:30px;}
+.concept b{display:block;font-family:'Fredoka';font-size:.95rem;}
+.concept span{font-size:.82rem;color:var(--ink-soft);}
+
+/* ---------- maze ---------- */
+.level-body{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;}
+.maze-col{flex:none;}
+.maze{position:relative;display:grid;border:2px solid var(--line-strong);border-radius:6px;overflow:hidden;background:var(--surface-2);}
+.cell{border:1px solid var(--line);position:relative;}
+.cell.wall{background:repeating-linear-gradient(45deg,var(--ink-soft) 0 2px,transparent 2px 9px);opacity:.35;}
+.cell.goal-cell{display:flex;align-items:center;justify-content:center;}
+.cell.goal-cell svg{width:62%;height:62%;}
+.cell.start-cell::after{content:"";position:absolute;inset:4px;border:2px dashed var(--accent2);border-radius:4px;opacity:.5;}
+.robot{
+  position:absolute;width:var(--cs);height:var(--cs);display:flex;align-items:center;justify-content:center;
+  transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform;z-index:2;
+}
+.robot .body{width:62%;height:62%;background:var(--accent);border-radius:30%;position:relative;box-shadow:0 2px 0 var(--line-strong) inset;}
+.robot .body::before{content:"";position:absolute;left:50%;top:-38%;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:11px solid var(--accent);transform:translateX(-50%);}
+.robot .body::after{content:"";position:absolute;left:28%;top:34%;width:14%;height:14%;border-radius:50%;background:var(--accent-ink);box-shadow:calc(28% + 2px) 0 0 var(--accent-ink);}
+.robot.crash .body{background:var(--danger);}
+.robot.crash .body::before{border-bottom-color:var(--danger);}
+.robot.win{animation:bounce .5s ease 2;}
+@keyframes bounce{0%,100%{transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) scale(1);}50%{transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) scale(1.18);}}
+.maze.shake{animation:shake .32s;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+
+/* ---------- builder ---------- */
+.builder{flex:1;min-width:240px;display:flex;flex-direction:column;gap:12px;}
+.palette{display:flex;gap:8px;flex-wrap:wrap;}
+.chipbtn{
+  font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.78rem;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  border-radius:7px;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:transform .12s, background .12s;
+}
+.chipbtn:hover{background:var(--surface-2);}
+.chipbtn:active{transform:scale(.95);}
+.chipbtn.loopbtn{border-color:var(--accent2);color:var(--accent2);}
+.chipbtn.ifbtn{border-color:var(--accent);color:var(--accent);}
+.chipbtn.util{margin-left:auto;color:var(--danger);border-color:var(--danger);}
+.stepper{display:none;align-items:center;gap:8px;background:var(--accent2-soft);border:1px solid var(--accent2);border-radius:7px;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;}
+.stepper.show{display:flex;}
+.stepper button{width:22px;height:22px;border-radius:5px;border:1px solid var(--accent2);background:var(--surface);color:var(--accent2);font-weight:700;cursor:pointer;}
+.strip{
+  min-height:48px;border:1.5px dashed var(--line-strong);border-radius:8px;padding:8px;
+  display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;background:var(--bg);
+}
+.strip .empty-hint{color:var(--ink-soft);font-size:.82rem;font-family:'Work Sans';align-self:center;}
+.strip .chip{
+  font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:600;padding:5px 8px;border-radius:6px;
+  background:var(--surface);border:1px solid var(--line-strong);
+}
+.strip .chip.c-loop{background:var(--accent2-soft);border-color:var(--accent2);color:var(--accent2);}
+.strip .chip.c-if{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.controls{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{
+  font-family:'Fredoka';font-weight:600;font-size:.88rem;border-radius:8px;padding:9px 18px;cursor:pointer;border:none;
+}
+.btn.run{background:var(--accent);color:var(--accent-ink);}
+.btn.clear{background:transparent;border:1px solid var(--line-strong);color:var(--ink-soft);}
+.btn.next{background:var(--success);color:#06220d;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.feedback{font-size:.88rem;min-height:1.3em;font-weight:600;}
+.feedback.ok{color:var(--success);}
+.feedback.bad{color:var(--danger);}
+.feedback.hint{color:var(--ink-soft);font-weight:500;}
+.stars{font-size:1.3rem;letter-spacing:3px;}
+.stars .off{opacity:.25;}
+
+/* ---------- quiz ---------- */
+.qcard{border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:12px;background:var(--surface-2);}
+.qcard .qn{font-family:'IBM Plex Mono';font-size:.72rem;color:var(--ink-soft);margin-bottom:4px;}
+.qcard p.qtext{margin:0 0 10px;font-weight:600;}
+.opt{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:7px;border:1px solid var(--line-strong);background:var(--surface);margin-bottom:7px;cursor:pointer;font-family:'Work Sans';font-size:.9rem;color:var(--ink);}
+.opt:hover{border-color:var(--accent2);}
+.opt.correct{background:var(--success-soft);border-color:var(--success);}
+.opt.wrong{background:var(--danger-soft);border-color:var(--danger);}
+.opt:disabled{cursor:default;}
+.qcard .explain{font-size:.82rem;color:var(--ink-soft);margin-top:6px;display:none;}
+.qcard .explain.show{display:block;}
+.quizscore{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px;}
+.badge-result{font-family:'Fredoka';font-weight:700;padding:8px 16px;border-radius:9px;background:var(--accent-soft);color:var(--accent);}
+
+/* ---------- worksheet ---------- */
+.wsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:6px;}
+.wscard{border:1px solid var(--line-strong);border-radius:8px;padding:14px;background:var(--surface-2);display:flex;flex-direction:column;gap:8px;}
+.wscard h3{margin:0;font-size:1.02rem;}
+.wscard p{margin:0;font-size:.86rem;color:var(--ink-soft);}
+.wslines{display:flex;flex-direction:column;gap:6px;margin-top:2px;}
+.wslines div{border-bottom:1px solid var(--line-strong);height:20px;font-family:'IBM Plex Mono';font-size:.74rem;color:var(--ink-soft);}
+.wstypes{display:flex;gap:6px;flex-wrap:wrap;font-size:.74rem;}
+.wstypes span{border:1px solid var(--line-strong);border-radius:5px;padding:3px 7px;color:var(--ink-soft);}
+.copybtn{align-self:flex-start;font-family:'IBM Plex Mono';font-size:.72rem;font-weight:600;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:6px;padding:6px 10px;cursor:pointer;}
+.copybtn:hover{background:var(--accent2-soft);}
+.copybtn.copied{background:var(--success-soft);border-color:var(--success);color:var(--success);}
+details.keysheet{margin-top:14px;border-top:1px dashed var(--line-strong);padding-top:12px;}
+details.keysheet summary{cursor:pointer;font-family:'IBM Plex Mono';font-size:.8rem;color:var(--accent2);font-weight:600;}
+details.keysheet ul{font-size:.85rem;color:var(--ink-soft);padding-left:18px;}
+.note{font-size:.8rem;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:10px 12px;}
+
+footer{text-align:center;color:var(--ink-soft);font-size:.78rem;padding-top:10px;}
+
+@media (prefers-reduced-motion: reduce){
+  .robot{transition:none;}
+  .robot.win{animation:none;}
+  .maze.shake{animation:none;}
+}
+
+/* ---------- name gate ---------- */
+.gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;}
+.gate-card{max-width:420px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:38px 28px;display:flex;flex-direction:column;gap:16px;text-align:center;box-shadow:0 10px 40px rgba(20,30,50,.12);}
+.gate-card .bot-badge{align-self:center;}
+.gate-card h1{font-size:1.5rem;margin:4px 0 0;}
+.gate-card p{color:var(--ink-soft);margin:0;font-size:.92rem;line-height:1.4;}
+.gate-card input{font-family:'Work Sans';font-size:1.05rem;padding:13px 14px;border-radius:9px;border:1.5px solid var(--line-strong);background:var(--bg);color:var(--ink);text-align:center;}
+.gate-card input:focus{outline:2px solid var(--accent2);outline-offset:1px;}
+.gate-card .err{color:var(--danger);font-size:.84rem;min-height:1.2em;}
+
+/* ---------- score badge ---------- */
+.scorebadge{position:fixed;top:14px;right:14px;z-index:90;background:var(--surface);border:1.5px solid var(--accent);border-radius:999px;padding:9px 18px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.85rem;color:var(--accent);box-shadow:0 2px 10px rgba(20,30,50,.1);}
+.scorebadge b{font-size:1.05em;}
+
+/* ---------- teacher dashboard ---------- */
+.lb-table{width:100%;border-collapse:collapse;margin-top:4px;}
+.lb-table th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.04em;color:var(--ink-soft);padding:8px 10px;border-bottom:1.5px solid var(--line-strong);}
+.lb-table td{padding:10px;border-bottom:1px solid var(--line);font-size:.95rem;}
+.lb-table tr:first-child td{font-weight:700;color:var(--accent);}
+.lb-rank{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);width:2em;}
+.lb-empty{color:var(--ink-soft);font-size:.9rem;padding:16px 4px;}
+.lb-wrap{max-height:420px;overflow-y:auto;}
+.logout{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--ink-soft);background:none;border:none;text-decoration:underline;cursor:pointer;padding:0;}
+
+/* ---------- randomizer (teacher) ---------- */
+.drum{
+  position:relative;width:100%;max-width:480px;height:110px;border-radius:16px;margin:0 auto;
+  background:var(--surface-2);border:2px solid var(--line-strong);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.drum::before,.drum::after{content:"";position:absolute;top:0;bottom:0;width:36px;z-index:2;pointer-events:none;}
+.drum::before{left:0;background:linear-gradient(90deg,var(--surface-2),transparent);}
+.drum::after{right:0;background:linear-gradient(270deg,var(--surface-2),transparent);}
+.drum .dname{font-family:'Fredoka';font-weight:600;font-size:clamp(1.2rem,4.5vw,1.9rem);color:var(--ink);padding:0 20px;white-space:nowrap;}
+.drum.spinning .dname{color:var(--ink-soft);}
+.drum.landed{border-color:var(--accent);background:var(--accent-soft);}
+.drum.landed .dname{color:var(--accent);}
+.drum.empty .dname{color:var(--ink-soft);font-family:'Work Sans';font-size:1rem;font-weight:400;}
+.confetti{position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;z-index:150;}
+.confetti span{position:absolute;top:-10px;width:9px;height:14px;opacity:.9;animation:fall linear forwards;}
+@keyframes fall{to{transform:translateY(100vh) rotate(540deg);opacity:0;}}
+@media (prefers-reduced-motion: reduce){.confetti span{animation:none;display:none;}}
+</style>
+</head>
+<body>
+
+<!-- ===================== NAME GATE ===================== -->
+<div class="gate" id="gate">
+  <form class="gate-card" id="gateForm">
+    <div class="bot-badge" aria-hidden="true"></div>
+    <h1>Алгоритм патшалығы</h1>
+    <p>Ойынды бастау үшін аты-жөніңізді толық жазыңыз. Мұғалім сол арқылы сіздің ұпайыңызды көреді.</p>
+    <input type="text" id="nameInput" placeholder="Мысалы: Айгерім Болатқызы" autocomplete="off" required>
+    <div class="err" id="gateErr"></div>
+    <button type="submit" class="btn run">Кіру</button>
+  </form>
+</div>
+
+<!-- ===================== SCORE BADGE ===================== -->
+<div class="scorebadge" id="scoreBadge" hidden>Ұпай: <b id="scoreVal">0</b></div>
+
+<!-- ===================== STUDENT GAME ===================== -->
+<div class="wrap" id="gameWrap" hidden>
+
+  <header class="hero">
+    <span class="kicker">ИНФОРМАТИКА · 5–7 СЫНЫП</span>
+    <h1 class="title">Алгоритм патшалығы</h1>
+    <p class="sub">Робот-зерттеушіге дұрыс команда беріп, қазынаны тап! Әр деңгей — алгоритмнің бір түрін (сызықтық, циклдік, тармақталған) іс жүзінде үйретеді.</p>
+    <div class="hero-scene" aria-hidden="true">
+      <div class="bot-badge"></div>
+      <div class="dashpath"></div>
+      <div class="goal-badge">
+        <svg viewBox="0 0 40 40"><polygon points="20,2 25,15 39,15 28,24 32,38 20,29 8,38 12,24 1,15 15,15" fill="var(--accent)"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <section class="panel" style="padding:16px clamp(16px,4vw,28px);">
+    <span class="bl"></span><span class="br"></span>
+    <div class="gradebar">
+      <span class="gl">СЫНЫБЫҢДЫ ТАҢДА:</span>
+      <button class="gradebtn" data-grade-btn="5" aria-pressed="false" type="button">5-сынып</button>
+      <button class="gradebtn" data-grade-btn="6" aria-pressed="false" type="button">6-сынып</button>
+      <button class="gradebtn" data-grade-btn="7" aria-pressed="false" type="button">7-сынып</button>
+    </div>
+    <div class="planbox" data-planbox style="margin-top:12px;"></div>
+  </section>
+
+  <nav class="steps" aria-label="Бөлімдер">
+    <a href="#intro">Не үйренеміз</a>
+    <a href="#level1">Деңгей 1</a>
+    <a href="#level2">Деңгей 2</a>
+    <a href="#level3" data-min-grade="6">Деңгей 3</a>
+    <a href="#level4" data-min-grade="7">Деңгей 4 · Шебер</a>
+    <a href="#quiz">Квиз</a>
+    <a href="#worksheet">Топтық тапсырма</a>
+  </nav>
+
+  <section class="panel" id="intro">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Алгоритм дегеніміз не?</h2></div>
+    <p class="lead">Алгоритм — белгілі бір мақсатқа жету үшін орындаушы (адам немесе робот) дәл осы ретпен орындайтын әрекеттердің нақты тізбегі. Информатикада алгоритмнің үш негізгі түрі бар:</p>
+    <div class="concepts">
+      <div class="concept">
+        <svg viewBox="0 0 30 30"><rect x="4" y="4" width="22" height="9" rx="2" fill="none" stroke="var(--accent2)" stroke-width="2.2"/><rect x="4" y="17" width="22" height="9" rx="2" fill="none" stroke="var(--accent2)" stroke-width="2.2"/></svg>
+        <span><b>Сызықтық</b><span>Әрекеттер бір-бірінен кейін, ретімен, қайталаусыз орындалады.</span></span>
+      </div>
+      <div class="concept">
+        <svg viewBox="0 0 30 30"><polygon points="15,2 28,15 15,28 2,15" fill="none" stroke="var(--accent)" stroke-width="2.2"/></svg>
+        <span><b>Тармақталған</b><span>Шартқа байланысты екі жолдың бірі таңдалады: «ЕГЕР... ОНДА... ӘЙТПЕСЕ...».</span></span>
+      </div>
+      <div class="concept">
+        <svg viewBox="0 0 30 30"><path d="M6 10a9 9 0 1 1 1.5 10" fill="none" stroke="var(--accent2)" stroke-width="2.4"/><polygon points="7,20 3,20 5,15" fill="var(--accent2)"/></svg>
+        <span><b>Циклдік</b><span>Бір әрекет немен әрекеттер топтамасы бірнеше рет қайталанады.</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== LEVEL 1 ===================== -->
+  <section class="panel" id="level1" data-level="1">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Деңгей 1 — Сызықтық алгоритм</h2><span class="tag amber">АЛҒА · СОЛ · ОҢ</span><span class="tag" data-vprog="1">Сынақ 1/3</span></div>
+    <p class="lead">Роботты бастау нүктесінен (қаруланған квадрат) жұлдызға дейін апар. Команданы ретімен бас: АЛҒА — бір ұяшыққа жүру, СОЛ/ОҢ — орнында 90° бұрылу. 3 лабиринт-сынақ бар, әрқайсысы алдыңғыдан қиынырак.</p>
+    <div class="level-body">
+      <div class="maze-col">
+        <div class="maze" data-grid="1" style="--cols:5;--rows:4;"></div>
+      </div>
+      <div class="builder" data-builder="1">
+        <div class="palette">
+          <button class="chipbtn" data-tok="FORWARD">↑ АЛҒА</button>
+          <button class="chipbtn" data-tok="LEFT">↺ СОЛ</button>
+          <button class="chipbtn" data-tok="RIGHT">↻ ОҢ</button>
+          <button class="chipbtn util" data-tok="UNDO">⌫ ЖОЮ</button>
+        </div>
+        <div class="strip" data-strip="1"><span class="empty-hint">Командаларды жоғарыдан таңда…</span></div>
+        <div class="controls">
+          <button class="btn run" data-run="1">▶ ЖҮРГІЗУ</button>
+          <button class="btn clear" data-clear="1">Тазалау</button>
+          <button class="btn next" data-next="1" disabled>Келесі деңгей →</button>
+        </div>
+        <div class="feedback" data-feedback="1"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== LEVEL 2 ===================== -->
+  <section class="panel" id="level2" data-level="2">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Деңгей 2 — Циклдік алгоритм</h2><span class="tag">ЦИКЛ блогы</span><span class="tag" data-vprog="2">Сынақ 1/3</span></div>
+    <p class="lead">Дәліз ұзын. «АЛҒА»ны бірнеше рет қолмен басуға да болады — бірақ ЦИКЛ блогын қолдансаң, бағдарлама әлдеқайда қысқа болады! Санды таңдап, «Қосу» бас. 3 сынақ бар — соңғысында ЦИКЛді екі рет қолдануға тура келеді.</p>
+    <div class="level-body">
+      <div class="maze-col">
+        <div class="maze" data-grid="2" style="--cols:3;--rows:8;"></div>
+      </div>
+      <div class="builder" data-builder="2">
+        <div class="palette">
+          <button class="chipbtn" data-tok="FORWARD">↑ АЛҒА</button>
+          <button class="chipbtn" data-tok="LEFT">↺ СОЛ</button>
+          <button class="chipbtn" data-tok="RIGHT">↻ ОҢ</button>
+          <button class="chipbtn loopbtn" data-open-loop="2">⟲ ЦИКЛ</button>
+          <button class="chipbtn loopbtn" data-tok="LOOP_END">⟲ ЦИКЛ АЯҒЫ</button>
+          <button class="chipbtn util" data-tok="UNDO">⌫ ЖОЮ</button>
+        </div>
+        <div class="stepper" data-stepper="2">
+          <span>ЦИКЛ саны:</span>
+          <button data-dec="2" type="button">−</button>
+          <span class="mono" data-count="2">3</span>
+          <button data-inc="2" type="button">+</button>
+          <button class="btn run" style="padding:5px 12px;font-size:.78rem;" data-confirm-loop="2">Қосу</button>
+        </div>
+        <div class="strip" data-strip="2"><span class="empty-hint">Командаларды жоғарыдан таңда…</span></div>
+        <div class="controls">
+          <button class="btn run" data-run="2">▶ ЖҮРГІЗУ</button>
+          <button class="btn clear" data-clear="2">Тазалау</button>
+          <button class="btn next" data-next="2" disabled>Келесі деңгей →</button>
+        </div>
+        <div class="feedback" data-feedback="2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== LEVEL 3 ===================== -->
+  <section class="panel" id="level3" data-level="3" data-min-grade="6">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Деңгей 3 — Тармақталған алгоритм</h2><span class="tag amber">ЕГЕР · ӘЙТПЕСЕ</span><span class="tag" data-vprog="3">Сынақ 1/2</span></div>
+    <p class="lead">Жол екіге айырылады. «ЕГЕР алда қабырға болса → ОҢ, ӘЙТПЕСЕ → СОЛ, ЕГЕР АЯҒЫ» блогын қолданып, робот өзі шешім қабылдасын! 2 сынақ бар — екіншісінде дұрыс жол басқа бағытта.</p>
+    <div class="level-body">
+      <div class="maze-col">
+        <div class="maze" data-grid="3" style="--cols:2;--rows:5;"></div>
+      </div>
+      <div class="builder" data-builder="3">
+        <div class="palette">
+          <button class="chipbtn" data-tok="FORWARD">↑ АЛҒА</button>
+          <button class="chipbtn" data-tok="LEFT">↺ СОЛ</button>
+          <button class="chipbtn" data-tok="RIGHT">↻ ОҢ</button>
+          <button class="chipbtn ifbtn" data-tok="IF_START">◇ ЕГЕР алда қабырға</button>
+          <button class="chipbtn ifbtn" data-tok="ELSE">◇ ӘЙТПЕСЕ</button>
+          <button class="chipbtn ifbtn" data-tok="IF_END">◇ ЕГЕР АЯҒЫ</button>
+          <button class="chipbtn util" data-tok="UNDO">⌫ ЖОЮ</button>
+        </div>
+        <div class="strip" data-strip="3"><span class="empty-hint">Командаларды жоғарыдан таңда…</span></div>
+        <div class="controls">
+          <button class="btn run" data-run="3">▶ ЖҮРГІЗУ</button>
+          <button class="btn clear" data-clear="3">Тазалау</button>
+          <button class="btn next" data-next="3" disabled>Келесі деңгей →</button>
+        </div>
+        <div class="feedback" data-feedback="3"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== LEVEL 4 (МАСТЕР, 7-сынып) ===================== -->
+  <section class="panel" id="level4" data-level="4" data-min-grade="7">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Деңгей 4 — Шебер сынағы</h2><span class="tag amber">ЦИКЛ + ЕГЕР бірге</span><span class="tag" data-vprog="4">Сынақ 1/2</span></div>
+    <p class="lead">Бұл лабиринт бұрылыстарға толы. Әр бұрылысты жеке жаттамай, <b>бір ЖАЛПЫ ЕРЕЖЕ</b> құрып көр: «ЦИКЛ 25 рет: ЕГЕР алда қабырға болса → ОҢ, ӘЙТПЕСЕ → АЛҒА, ЕГЕР АЯҒЫ, ЦИКЛ АЯҒЫ». Осы 7 команда ғана бүкіл лабиринтті шешеді! Екі түрлі лабиринт-сынақтан өтесің.</p>
+    <div class="level-body">
+      <div class="maze-col">
+        <div class="maze" data-grid="4" style="--cols:7;--rows:7;"></div>
+      </div>
+      <div class="builder" data-builder="4">
+        <div class="palette">
+          <button class="chipbtn" data-tok="FORWARD">↑ АЛҒА</button>
+          <button class="chipbtn" data-tok="LEFT">↺ СОЛ</button>
+          <button class="chipbtn" data-tok="RIGHT">↻ ОҢ</button>
+          <button class="chipbtn loopbtn" data-open-loop="4">⟲ ЦИКЛ</button>
+          <button class="chipbtn loopbtn" data-tok="LOOP_END">⟲ ЦИКЛ АЯҒЫ</button>
+          <button class="chipbtn ifbtn" data-tok="IF_START">◇ ЕГЕР алда қабырға</button>
+          <button class="chipbtn ifbtn" data-tok="ELSE">◇ ӘЙТПЕСЕ</button>
+          <button class="chipbtn ifbtn" data-tok="IF_END">◇ ЕГЕР АЯҒЫ</button>
+          <button class="chipbtn util" data-tok="UNDO">⌫ ЖОЮ</button>
+        </div>
+        <div class="stepper" data-stepper="4">
+          <span>ЦИКЛ саны:</span>
+          <button data-dec="4" type="button">−</button>
+          <span class="mono" data-count="4">20</span>
+          <button data-inc="4" type="button">+</button>
+          <button class="btn run" style="padding:5px 12px;font-size:.78rem;" data-confirm-loop="4">Қосу</button>
+        </div>
+        <div class="strip" data-strip="4"><span class="empty-hint">Командаларды жоғарыдан таңда…</span></div>
+        <div class="controls">
+          <button class="btn run" data-run="4">▶ ЖҮРГІЗУ</button>
+          <button class="btn clear" data-clear="4">Тазалау</button>
+          <button class="btn next" data-next="4" disabled>Квизге өту →</button>
+        </div>
+        <div class="feedback" data-feedback="4"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== QUIZ ===================== -->
+  <section class="panel" id="quiz">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Білімді тексеру квизі</h2><span class="tag">5 сұрақ</span></div>
+    <p class="lead">Ойынды түсінгеннен кейін, ұғымдарды тексерейік.</p>
+    <div data-quiz></div>
+    <div class="quizscore" data-quizscore hidden>
+      <span class="badge-result" data-quizbadge></span>
+      <button class="btn clear" data-quizretry>Қайта тапсыру</button>
+    </div>
+  </section>
+
+  <!-- ===================== WORKSHEET ===================== -->
+  <section class="panel" id="worksheet">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Топтық тапсырма — жұмыс парағы</h2><span class="tag">4 топ · 4 тапсырма</span></div>
+    <p class="lead">Сыныпты 4 топқа бөл. Әр топ өз карточкасындағы жағдайды алгоритм түрінде қадамдап жазады және оның қай түрге (сызықтық / тармақталған / циклдік) жататынын белгілейді.</p>
+    <div class="wsgrid" data-worksheet></div>
+    <details class="keysheet">
+      <summary>Мұғалімге: жауап кілтін көрсету</summary>
+      <ul data-answerkey></ul>
+    </details>
+  </section>
+
+  <footer>Дәл қазіргі сынып бойынша сабақ жоспары жоғарыдағы жолақта көрсетілген (жалпы 45 минут). · <button class="logout" id="logoutBtn" type="button">Басқа атпен кіру</button></footer>
+</div>
+
+<!-- ===================== TEACHER DASHBOARD ===================== -->
+<div class="wrap" id="teacherWrap" hidden>
+  <header class="hero">
+    <span class="kicker">МҰҒАЛІМ ТАҚТАСЫ</span>
+    <h1 class="title">Сынып нәтижелері</h1>
+    <p class="sub">Оқушылардың аты-жөні мен ұпайы төменде тікелей жаңарып тұрады. Әр оқушы 10 ұпай = 1 квиз жауабы, 5 ұпай = 1 лабиринт жұлдызы бойынша жиналады.</p>
+  </header>
+
+  <section class="panel">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Тірі рейтинг</h2><span class="tag" id="lbCount">0 оқушы</span></div>
+    <div class="lb-wrap">
+      <table class="lb-table" id="lbTable">
+        <thead><tr><th>#</th><th>Аты-жөні</th><th>Сынып</th><th>Квиз</th><th>★ жұлдыз</th><th>Ұпай</th></tr></thead>
+        <tbody id="lbBody"></tbody>
+      </table>
+      <p class="lb-empty" id="lbEmpty">Әзірге ешкім кірмеген.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>Бақытты жеребе — 3-ші шоколад</h2></div>
+    <p class="lead">Қатысқан барлық оқушы арасынан кездейсоқ 1 жеңімпазды таңда.</p>
+    <div class="drum empty" id="drum" style="margin-bottom:16px;"><span class="dname" id="drumName">Алдымен оқушылар кірсін</span></div>
+    <div class="controls" style="justify-content:center;">
+      <button class="btn run" id="drawBtn" disabled>🎲 Жеребе бастау</button>
+    </div>
+  </section>
+
+  <footer><button class="logout" id="teacherLogoutBtn" type="button">Шығу</button></footer>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBlYDa2oNlU1WLQFmpKASm1Ga-V-5ZI_0I",
+  authDomain: "math-52255.firebaseapp.com",
+  projectId: "math-52255",
+  storageBucket: "math-52255.firebasestorage.app",
+  messagingSenderId: "99909388647",
+  appId: "1:99909388647:web:90b9834362875d024147c2"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+/* ================= NAME GATE ================= */
+const TEACHER_NAME = 'nu4lan';
+const gate = document.getElementById('gate');
+const gateForm = document.getElementById('gateForm');
+const nameInput = document.getElementById('nameInput');
+const gateErr = document.getElementById('gateErr');
+const gameWrap = document.getElementById('gameWrap');
+const teacherWrap = document.getElementById('teacherWrap');
+const scoreBadge = document.getElementById('scoreBadge');
+const scoreVal = document.getElementById('scoreVal');
+
+let studentName = '';
+let studentDocId = '';
+let isTeacher = false;
+
+function sessionSuffix(){
+  try{
+    let s = sessionStorage.getItem('algoritm_suffix');
+    if(!s){ s = Math.random().toString(36).slice(2,6); sessionStorage.setItem('algoritm_suffix', s); }
+    return s;
+  }catch(e){ return Math.random().toString(36).slice(2,6); }
+}
+function docIdFromName(name){
+  let s = name.trim().replace(/\s+/g,' ').replace(/\//g,'∕').slice(0,160);
+  return s + '#' + sessionSuffix();
+}
+
+function enterAsStudent(name){
+  studentName = name;
+  studentDocId = docIdFromName(name);
+  try{ sessionStorage.setItem('algoritm_name', name); }catch(e){}
+  gate.hidden = true;
+  gameWrap.hidden = false;
+  scoreBadge.hidden = false;
+  initGame();
+  syncScore();
+}
+function enterAsTeacher(){
+  isTeacher = true;
+  gate.hidden = true;
+  teacherWrap.hidden = false;
+  initTeacherDashboard();
+}
+
+gateForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const raw = nameInput.value.trim();
+  if(!raw){ gateErr.textContent = 'Атыңызды жазыңыз.'; return; }
+  gateErr.textContent = '';
+  if(raw.toLowerCase() === TEACHER_NAME){ enterAsTeacher(); return; }
+  enterAsStudent(raw);
+});
+
+(function tryAutoLogin(){
+  let saved = '';
+  try{ saved = sessionStorage.getItem('algoritm_name') || ''; }catch(e){}
+  if(saved) enterAsStudent(saved);
+})();
+
+function doLogout(){
+  try{ sessionStorage.removeItem('algoritm_name'); sessionStorage.removeItem('algoritm_suffix'); }catch(e){}
+  location.reload();
+}
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+document.getElementById('teacherLogoutBtn').addEventListener('click', doLogout);
+
+/* ================= SCORE SYNC ================= */
+const levelStarsMap = {};
+function syncScore(){
+  if(!studentDocId) return;
+  const starsTotal = Object.values(levelStarsMap).reduce((a,b)=>a+b,0);
+  const total = quizScore0*10 + starsTotal*5;
+  scoreVal.textContent = String(total);
+  setDoc(doc(db,'students',studentDocId), {
+    name: studentName,
+    grade: currentGrade,
+    score: total,
+    quizScore: quizScore0,
+    quizTotal: quizTotal0,
+    starsTotal: starsTotal,
+    updatedAt: new Date().toISOString()
+  }, { merge: true }).catch(()=>{ /* offline or blocked — fail quietly, UI already updated locally */ });
+}
+let quizScore0 = 0, quizTotal0 = 0;
+let currentGrade = 5;
+
+/* ================= TEACHER DASHBOARD ================= */
+let liveStudents = [];
+function initTeacherDashboard(){
+  const lbBody = document.getElementById('lbBody');
+  const lbEmpty = document.getElementById('lbEmpty');
+  const lbCount = document.getElementById('lbCount');
+  const drawBtn = document.getElementById('drawBtn');
+  const drum = document.getElementById('drum');
+  const drumName = document.getElementById('drumName');
+
+  const q = query(collection(db,'students'), orderBy('score','desc'));
+  onSnapshot(q, (snap)=>{
+    liveStudents = snap.docs.map(d=>d.data());
+    lbCount.textContent = liveStudents.length + ' оқушы';
+    lbBody.innerHTML = '';
+    lbEmpty.hidden = liveStudents.length>0;
+    liveStudents.forEach((s,i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td class="lb-rank">'+(i+1)+'</td><td>'+escapeHtml(s.name||'—')+'</td><td>'+(s.grade||'—')+'</td>'+
+        '<td>'+(s.quizScore!=null?(s.quizScore+'/'+(s.quizTotal||'?')):'—')+'</td><td>'+(s.starsTotal||0)+'</td><td><b>'+(s.score||0)+'</b></td>';
+      lbBody.appendChild(tr);
+    });
+    drawBtn.disabled = liveStudents.length===0;
+    if(liveStudents.length===0){
+      drum.classList.add('empty');
+      drumName.textContent='Алдымен оқушылар кірсін';
+    } else {
+      drum.classList.remove('empty');
+    }
+  }, (err)=>{
+    lbEmpty.hidden = false;
+    lbEmpty.textContent = 'Деректер базасына қосыла алмадық: '+err.code;
+  });
+
+  let spinning=false;
+  drawBtn.addEventListener('click', ()=>{
+    if(spinning || liveStudents.length===0) return;
+    spinning = true;
+    drawBtn.disabled = true;
+    drum.classList.remove('landed','empty');
+    drum.classList.add('spinning');
+    const winner = liveStudents[Math.floor(Math.random()*liveStudents.length)].name;
+    let elapsed=0, delay=55; const totalMs=2200;
+    function tick(){
+      const r = liveStudents[Math.floor(Math.random()*liveStudents.length)];
+      drumName.textContent = r.name;
+      elapsed += delay; delay *= 1.11;
+      if(elapsed<totalMs){ setTimeout(tick,delay); }
+      else{
+        drumName.textContent = winner;
+        drum.classList.remove('spinning');
+        drum.classList.add('landed');
+        spinning=false;
+        drawBtn.disabled=false;
+        burstConfetti();
+      }
+    }
+    tick();
+  });
+}
+function burstConfetti(){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const host=document.createElement('div');
+  host.className='confetti';
+  const colors=['#e8631c','#157d8c','#ffd166','#2f9e44'];
+  for(let i=0;i<40;i++){
+    const s=document.createElement('span');
+    s.style.left=(Math.random()*100)+'vw';
+    s.style.background=colors[i%colors.length];
+    s.style.animationDuration=(1.6+Math.random()*1.2)+'s';
+    s.style.animationDelay=(Math.random()*0.3)+'s';
+    host.appendChild(s);
+  }
+  document.body.appendChild(host);
+  setTimeout(()=>host.remove(),3200);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ================= GAME (ported, unchanged logic) ================= */
+let gameInited = false;
+function initGame(){
+  if(gameInited) return;
+  gameInited = true;
+
+/* ---------------- interpreter (verified separately) ---------------- */
+function stepPos(pos,dir){
+  if(dir===0) return {row:pos.row-1,col:pos.col};
+  if(dir===1) return {row:pos.row,col:pos.col+1};
+  if(dir===2) return {row:pos.row+1,col:pos.col};
+  return {row:pos.row,col:pos.col-1};
+}
+function inBounds(p,grid){ return p.row>=0 && p.row<grid.length && p.col>=0 && p.col<grid[0].length; }
+function matchPairs(tokens){
+  const stack=[]; const info={};
+  tokens.forEach((t,i)=>{
+    if(t.type==='LOOP_START') stack.push({i,type:'LOOP'});
+    else if(t.type==='LOOP_END'){ const top=stack.pop(); if(!top||top.type!=='LOOP') throw 0; info[top.i]={end:i}; info[i]={start:top.i}; }
+    else if(t.type==='IF_START') stack.push({i,type:'IF',elseIdx:null});
+    else if(t.type==='ELSE'){ const top=stack[stack.length-1]; if(!top||top.type!=='IF') throw 0; top.elseIdx=i; }
+    else if(t.type==='IF_END'){ const top=stack.pop(); if(!top||top.type!=='IF') throw 0; info[top.i]={elseIdx:top.elseIdx,end:i}; info[i]={start:top.i}; if(top.elseIdx!=null) info[top.elseIdx]={ifStart:top.i,end:i}; }
+  });
+  return {info,balanced:stack.length===0};
+}
+function runProgram(tokens,grid,startPos,startDir,maxSteps){
+  let pairs,balanced;
+  try{ const r=matchPairs(tokens); pairs=r.info; balanced=r.balanced; }catch(e){ return {status:'unbalanced'}; }
+  if(!balanced) return {status:'unbalanced'};
+  let pos={...startPos}, dir=startDir, pc=0, guard=0;
+  const loopCounters={};
+  const frames=[{pos:{...pos},dir,type:'start'}];
+  let usedLoop=false, usedIf=false;
+  tokens.forEach(t=>{ if(t.type==='LOOP_START') usedLoop=true; if(t.type==='IF_START') usedIf=true; });
+  while(pc<tokens.length){
+    if(guard++ > (maxSteps||400)) return {status:'timeout',frames};
+    const t=tokens[pc];
+    switch(t.type){
+      case 'FORWARD': {
+        const np=stepPos(pos,dir);
+        if(!inBounds(np,grid) || grid[np.row][np.col]==='#'){ frames.push({pos:np,dir,type:'crash'}); return {status:'crash',frames}; }
+        pos=np; frames.push({pos:{...pos},dir,type:'forward'});
+        if(grid[pos.row][pos.col]==='G') return {status:'success',frames,tokenCount:tokens.length,usedLoop,usedIf};
+        pc++; break;
+      }
+      case 'LEFT': dir=(dir+3)%4; frames.push({pos:{...pos},dir,type:'turn'}); pc++; break;
+      case 'RIGHT': dir=(dir+1)%4; frames.push({pos:{...pos},dir,type:'turn'}); pc++; break;
+      case 'LOOP_START': {
+        const key=pc;
+        if(loopCounters[key]==null) loopCounters[key]=t.count;
+        if(loopCounters[key]<=0){ delete loopCounters[key]; pc=pairs[pc].end+1; }
+        else pc++;
+        break;
+      }
+      case 'LOOP_END': { const startIdx=pairs[pc].start; loopCounters[startIdx]--; pc=startIdx; break; }
+      case 'IF_START': {
+        const ahead=stepPos(pos,dir);
+        const wallAhead = !inBounds(ahead,grid) || grid[ahead.row][ahead.col]==='#';
+        const inf=pairs[pc];
+        if(wallAhead) pc++;
+        else pc = inf.elseIdx!=null ? inf.elseIdx+1 : inf.end+1;
+        break;
+      }
+      case 'ELSE': { const inf=pairs[pc]; pc=inf.end+1; break; }
+      case 'IF_END': pc++; break;
+      default: pc++;
+    }
+  }
+  return {status:'nogoal',frames};
+}
+
+/* ---------------- level data ---------------- */
+const LEVELS={
+  1:{ label:'Сызықтық', scoreMode:'tokens', loopRange:[2,9], loopDefault:3,
+      variants:[
+        { grid:['...G..','......','......','......','S.....'], start:{row:4,col:0}, dir:0, cols:6, rows:5, stars:[10,14] },
+        { grid:['.....','.....','.....','.....','.....','S...G'], start:{row:5,col:0}, dir:0, cols:5, rows:6, stars:[12,16] },
+        { grid:['......','......','......','......','....G.','......','S.....'], start:{row:6,col:0}, dir:0, cols:6, rows:7, stars:[15,19] }
+      ] },
+  2:{ label:'Циклдік', wantLoop:true, scoreMode:'tokens', loopRange:[2,9], loopDefault:3,
+      variants:[
+        { grid:['#S#','#.#','#.#','#.#','#.#','#.#','#G#'], start:{row:0,col:1}, dir:2, cols:3, rows:7, stars:[4,8] },
+        { grid:['#S#','#.#','#.#','#.#','#.#','#.#','#.#','#.#','#.#','#G#'], start:{row:0,col:1}, dir:2, cols:3, rows:10, stars:[4,11] },
+        { grid:['#S####','#.####','#.####','#.####','#....G'], start:{row:0,col:1}, dir:2, cols:6, rows:5, stars:[8,13] }
+      ] },
+  3:{ label:'Тармақталған', wantIf:true, scoreMode:'construct', loopRange:[2,9], loopDefault:3,
+      variants:[
+        { grid:['##','.G','.#','.#','S#'], start:{row:4,col:0}, dir:0, cols:2, rows:5 },
+        { grid:['##','G.','#.','#.','#S'], start:{row:4,col:1}, dir:0, cols:2, rows:5 }
+      ] },
+  4:{ label:'Шебер (цикл+шарт)', wantIf:true, wantLoop:true, scoreMode:'construct', loopRange:[5,40], loopDefault:25,
+      variants:[
+        { grid:['#######','#S....#','#####.#','#####.#','#####.#','##G...#','#######'], start:{row:1,col:1}, dir:1, cols:7, rows:7 },
+        { grid:['#########','#S......#','#######.#','#######.#','#G#####.#','#.#####.#','#.#####.#','#.......#','#########'], start:{row:1,col:1}, dir:1, cols:9, rows:9 }
+      ] }
+};
+const CELL_PX=46;
+const state={};
+
+function currentVariant(levelNum){
+  const L=LEVELS[levelNum];
+  return L.variants[state[levelNum] ? state[levelNum].variant : 0];
+}
+function buildMaze(levelNum){
+  const V=currentVariant(levelNum);
+  const el=document.querySelector('.maze[data-grid="'+levelNum+'"]');
+  el.style.setProperty('--cs',CELL_PX+'px');
+  el.style.gridTemplateColumns='repeat('+V.cols+','+CELL_PX+'px)';
+  el.style.gridTemplateRows='repeat('+V.rows+','+CELL_PX+'px)';
+  el.style.width=(V.cols*CELL_PX)+'px';
+  el.style.height=(V.rows*CELL_PX)+'px';
+  el.innerHTML='';
+  for(let r=0;r<V.rows;r++){
+    for(let c=0;c<V.cols;c++){
+      const ch=V.grid[r][c];
+      const cell=document.createElement('div');
+      cell.className='cell';
+      if(ch==='#') cell.className+=' wall';
+      if(ch==='S') cell.className+=' start-cell';
+      if(ch==='G'){
+        cell.className+=' goal-cell';
+        cell.innerHTML='<svg viewBox="0 0 24 24"><polygon points="12,1 15,9 23,9 16.5,14 19,22 12,17 5,22 7.5,14 1,9 9,9" fill="var(--success)"/></svg>';
+      }
+      el.appendChild(cell);
+    }
+  }
+  const robot=document.createElement('div');
+  robot.className='robot';
+  robot.innerHTML='<div class="body"></div>';
+  robot.style.setProperty('--cs',CELL_PX+'px');
+  el.appendChild(robot);
+  placeRobot(levelNum,V.start,V.dir,false);
+  const vprog=document.querySelector('[data-vprog="'+levelNum+'"]');
+  if(vprog) vprog.textContent='Сынақ '+(state[levelNum].variant+1)+'/'+LEVELS[levelNum].variants.length;
+}
+function dirDeg(dir){ return dir*90; }
+function placeRobot(levelNum,pos,dir,animate){
+  const el=document.querySelector('.maze[data-grid="'+levelNum+'"]');
+  const robot=el.querySelector('.robot');
+  const tx=pos.col*CELL_PX, ty=pos.row*CELL_PX;
+  robot.style.setProperty('--tx',tx+'px');
+  robot.style.setProperty('--ty',ty+'px');
+  robot.style.setProperty('--rot',dirDeg(dir)+'deg');
+  if(!animate) robot.style.transition='none';
+  robot.style.transform='translate('+tx+'px,'+ty+'px) rotate('+dirDeg(dir)+'deg)';
+  if(!animate) requestAnimationFrame(()=>{ robot.style.transition=''; });
+}
+
+function tokenLabel(t){
+  const map={FORWARD:'АЛҒА',LEFT:'СОЛ',RIGHT:'ОҢ',LOOP_END:'ЦИКЛ АЯҒЫ',ELSE:'ӘЙТПЕСЕ',IF_END:'ЕГЕР АЯҒЫ'};
+  if(t.type==='LOOP_START') return 'ЦИКЛ '+t.count+'×';
+  if(t.type==='IF_START') return 'ЕГЕР алда қабырға';
+  return map[t.type]||t.type;
+}
+function tokenClass(t){
+  if(t.type==='LOOP_START'||t.type==='LOOP_END') return 'c-loop';
+  if(t.type==='IF_START'||t.type==='ELSE'||t.type==='IF_END') return 'c-if';
+  return '';
+}
+
+function renderStrip(levelNum){
+  const s=state[levelNum];
+  const strip=document.querySelector('.strip[data-strip="'+levelNum+'"]');
+  strip.innerHTML='';
+  if(s.tokens.length===0){
+    strip.innerHTML='<span class="empty-hint">Командаларды жоғарыдан таңда…</span>';
+    return;
+  }
+  s.tokens.forEach(t=>{
+    const chip=document.createElement('span');
+    chip.className='chip '+tokenClass(t);
+    chip.textContent=tokenLabel(t);
+    strip.appendChild(chip);
+  });
+}
+
+function setFeedback(levelNum,msg,kind){
+  const f=document.querySelector('.feedback[data-feedback="'+levelNum+'"]');
+  f.textContent=msg||'';
+  f.className='feedback'+(kind?(' '+kind):'');
+}
+
+function starsHtml(n){
+  let h='<span class="stars">';
+  for(let i=0;i<3;i++) h+= i<n ? '★' : '<span class="off">★</span>';
+  return h+'</span>';
+}
+
+function initLevel(levelNum){
+  const L0=LEVELS[levelNum];
+  state[levelNum]={tokens:[],loopCount:L0.loopDefault||3,running:false,variant:0};
+  buildMaze(levelNum);
+  renderStrip(levelNum);
+  const countEl0=document.querySelector('[data-count="'+levelNum+'"]');
+  if(countEl0) countEl0.textContent=state[levelNum].loopCount;
+
+  document.querySelectorAll('.builder[data-builder="'+levelNum+'"] .chipbtn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(state[levelNum].running) return;
+      const tok=btn.getAttribute('data-tok');
+      if(!tok) return;
+      if(tok==='UNDO'){ state[levelNum].tokens.pop(); renderStrip(levelNum); setFeedback(levelNum,'',''); return; }
+      const count = tok==='LOOP_START' ? state[levelNum].loopCount : undefined;
+      state[levelNum].tokens.push(count!=null?{type:tok,count}:{type:tok});
+      renderStrip(levelNum);
+      setFeedback(levelNum,'','');
+    });
+  });
+
+  const openLoopBtn=document.querySelector('[data-open-loop="'+levelNum+'"]');
+  if(openLoopBtn){
+    const stepper=document.querySelector('[data-stepper="'+levelNum+'"]');
+    const countEl=document.querySelector('[data-count="'+levelNum+'"]');
+    const [lmin,lmax]=L0.loopRange||[2,9];
+    openLoopBtn.addEventListener('click',()=>{ stepper.classList.add('show'); });
+    document.querySelector('[data-dec="'+levelNum+'"]').addEventListener('click',()=>{
+      state[levelNum].loopCount=Math.max(lmin,state[levelNum].loopCount-1);
+      countEl.textContent=state[levelNum].loopCount;
+    });
+    document.querySelector('[data-inc="'+levelNum+'"]').addEventListener('click',()=>{
+      state[levelNum].loopCount=Math.min(lmax,state[levelNum].loopCount+1);
+      countEl.textContent=state[levelNum].loopCount;
+    });
+    document.querySelector('[data-confirm-loop="'+levelNum+'"]').addEventListener('click',()=>{
+      state[levelNum].tokens.push({type:'LOOP_START',count:state[levelNum].loopCount});
+      renderStrip(levelNum);
+      stepper.classList.remove('show');
+    });
+  }
+
+  document.querySelector('[data-clear="'+levelNum+'"]').addEventListener('click',()=>{
+    if(state[levelNum].running) return;
+    state[levelNum].tokens=[];
+    renderStrip(levelNum);
+    setFeedback(levelNum,'','');
+    const V=currentVariant(levelNum);
+    placeRobot(levelNum,V.start,V.dir,false);
+    const nextBtn=document.querySelector('[data-next="'+levelNum+'"]');
+    if(nextBtn) nextBtn.disabled=true;
+  });
+
+  document.querySelector('[data-run="'+levelNum+'"]').addEventListener('click',()=>{
+    runLevel(levelNum);
+  });
+
+  const nextBtn=document.querySelector('[data-next="'+levelNum+'"]');
+  if(nextBtn){
+    nextBtn.addEventListener('click',()=>{
+      const st=state[levelNum];
+      if(st.variant < L0.variants.length-1){
+        st.variant++;
+        st.tokens=[];
+        buildMaze(levelNum);
+        renderStrip(levelNum);
+        setFeedback(levelNum,'','');
+        nextBtn.disabled=true;
+        return;
+      }
+      let target=document.getElementById('level'+(levelNum+1));
+      if(!target || target.hidden) target=document.getElementById('quiz');
+      if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  }
+}
+
+function runLevel(levelNum){
+  const s=state[levelNum];
+  if(s.running) return;
+  if(s.tokens.length===0){ setFeedback(levelNum,'Алдымен команда таңда!','bad'); return; }
+  const L=LEVELS[levelNum];
+  const V=currentVariant(levelNum);
+  const result=runProgram(s.tokens,V.grid,V.start,V.dir,400);
+
+  if(result.status==='unbalanced'){
+    setFeedback(levelNum,'ЦИКЛ немесе ЕГЕР блогы жабылмай қалды — АЯҒЫ командасын қос!','bad');
+    return;
+  }
+  s.running=true;
+  placeRobot(levelNum,V.start,V.dir,false);
+  const mazeEl=document.querySelector('.maze[data-grid="'+levelNum+'"]');
+  const robotEl=mazeEl.querySelector('.robot');
+  robotEl.classList.remove('crash','win');
+  setFeedback(levelNum,'Орындалып жатыр…','hint');
+
+  const frames=result.frames;
+  let i=1;
+  function stepAnim(){
+    if(i>=frames.length){
+      finish();
+      return;
+    }
+    const fr=frames[i];
+    placeRobot(levelNum,fr.pos,fr.dir,true);
+    if(fr.type==='crash'){
+      robotEl.classList.add('crash');
+      mazeEl.classList.add('shake');
+      setTimeout(()=>{ mazeEl.classList.remove('shake'); finish(); },420);
+      return;
+    }
+    i++;
+    setTimeout(stepAnim,340);
+  }
+  setTimeout(stepAnim,250);
+
+  function finish(){
+    s.running=false;
+    if(result.status==='success'){
+      robotEl.classList.add('win');
+      let n, hint='';
+      if(L.scoreMode==='construct'){
+        const loopOk = !L.wantLoop || result.usedLoop;
+        const ifOk = !L.wantIf || result.usedIf;
+        n = (loopOk && ifOk) ? 3 : 2;
+        if(L.wantLoop && L.wantIf && (!result.usedLoop || !result.usedIf)) hint=' Кеңес: ЦИКЛ мен ЕГЕР блогын бірге қолдансаң — бір ғана ереже бүкіл лабиринтті шешеді!';
+        else if(L.wantIf && !result.usedIf) hint=' Кеңес: ЕГЕР...ӘЙТПЕСЕ блогын да көрсетуге тырыс — робот өзі шешім қабылдайды!';
+      } else {
+        const [a,b]=V.stars;
+        n = result.tokenCount<=a?3:(result.tokenCount<=b?2:1);
+        hint = (L.wantLoop && !result.usedLoop && n<3) ? ' Кеңес: ЦИКЛ блогын қолдансаң, бағдарлама қысқарады!' : '';
+      }
+      const fbEl=document.querySelector('.feedback[data-feedback="'+levelNum+'"]');
+      fbEl.className='feedback ok';
+      const hasMore = s.variant < L.variants.length-1;
+      const nextLabel = hasMore ? 'Келесі сынақ →' : (levelNum<4 ? 'Келесі деңгей →' : 'Квизге өту →');
+      fbEl.innerHTML =
+        'Жарайсың! Мақсатқа жетті. '+starsHtml(n)+'<span class="mono" style="margin-left:6px;color:var(--ink-soft);">('+result.tokenCount+' команда)</span>'+(hint?('<br>'+hint):'');
+      const nextBtn=document.querySelector('[data-next="'+levelNum+'"]');
+      if(nextBtn){ nextBtn.disabled=false; nextBtn.textContent=nextLabel; }
+
+      const key=levelNum+'-'+s.variant;
+      levelStarsMap[key] = Math.max(levelStarsMap[key]||0, n);
+      syncScore();
+    } else if(result.status==='crash'){
+      setFeedback(levelNum,'Робот қабырғаға/шекараға соғылды. Қайта ойлан да, қайта жүргіз!','bad');
+    } else if(result.status==='timeout'){
+      setFeedback(levelNum,'Бағдарлама тым ұзақ жұмыс істеді. ЦИКЛ санын тексер.','bad');
+    } else {
+      setFeedback(levelNum,'Робот мақсатқа жеткен жоқ. Команданы толықтыр!','bad');
+    }
+  }
+}
+
+[1,2,3,4].forEach(initLevel);
+
+/* ---------------- quiz ---------------- */
+const QUIZ=[
+  {q:'Алгоритм дегеніміз не?',
+   opts:['Кез келген мәтін','Белгілі бір мақсатқа жету үшін әрекеттердің нақты реттілігі','Компьютердің бөлшегі','Бағдарламашының есімі'],
+   correct:1, minGrade:5,
+   explain:'Алгоритм — мақсатқа жету үшін орындалатын әрекеттердің дәл және нақты тізбегі.'},
+  {q:'Әрекеттер бір-бірінен кейін, қайталаусыз, тікелей ретімен орындалатын алгоритм түрі қалай аталады?',
+   opts:['Циклдік','Тармақталған','Сызықтық','Кездейсоқ'],
+   correct:2, minGrade:5,
+   explain:'Сызықтық алгоритмде барлық команда бір рет, кезекпен орындалады.'},
+  {q:'Алгоритмді нақты орындайтын адам немесе құрылғы қалай аталады?',
+   opts:['Алгоритмист','Орындаушы','Тек қана процессор','Пайдаланушы'],
+   correct:1, minGrade:5,
+   explain:'Орындаушы — алгоритмдегі командаларды дәл сол ретпен орындайтын объект (робот, адам, компьютер).'},
+  {q:'Белгілі бір шартқа байланысты екі жолдың бірі таңдалатын алгоритм түрі?',
+   opts:['Сызықтық','Тармақталған','Циклдік','Сызбалық'],
+   correct:1, minGrade:6,
+   explain:'Тармақталған алгоритм «ЕГЕР... ОНДА... ӘЙТПЕСЕ...» құрылымын қолданады.'},
+  {q:'Бір немесе бірнеше әрекетті көп рет қайталауды қалай атаймыз?',
+   opts:['Тармақталу','Цикл','Сызықтық кезек','Команда'],
+   correct:1, minGrade:6,
+   explain:'Цикл — әрекеттер топтамасының белгілі шартқа дейін немесе белгілі санға дейін қайталануы.'},
+  {q:'ЕГЕР...ОНДА...ӘЙТПЕСЕ... блогы ЦИКЛ ішіне салынса, бұл не үшін қажет?',
+   opts:['Бағдарламаны ұзартады','Робот әр қадамда жағдайды тексеріп, дұрыс шешім қабылдайды','Циклді мәңгілікке тоқтатады','Ешқандай мәні жоқ'],
+   correct:1, minGrade:7,
+   explain:'ЦИКЛ ішіндегі ЕГЕР әр қайталануда ортаны (мыс., алда қабырға бар-жоғын) қайта тексеріп, лабиринттің кез келген пішініне бейімделетін жалпы ереже жасайды.'},
+  {q:'«ЦИКЛ 5 рет: АЛҒА» және «АЛҒА АЛҒА АЛҒА АЛҒА АЛҒА» жазбалары бір-бірінен несімен ерекшеленеді?',
+   opts:['Нәтижесі мүлде басқа болады','Нәтижесі бірдей, бірақ ЦИКЛ жазбасы қысқа әрі тиімдірек','ЦИКЛ баяу жұмыс істейді','Айырмашылығы жоқ'],
+   correct:1, minGrade:7,
+   explain:'Екеуі де роботты 5 рет алға жүргізеді, бірақ ЦИКЛ блогы бағдарламаны қысқа әрі оқуға оңай етеді.'}
+];
+let quizScore=0, quizAnswered=0, quizList=[];
+
+function renderQuiz(){
+  quizScore=0; quizAnswered=0;
+  quizList=QUIZ.filter(item=>item.minGrade<=currentGrade);
+  const host=document.querySelector('[data-quiz]');
+  host.innerHTML='';
+  document.querySelector('[data-quizscore]').hidden=true;
+  quizList.forEach((item,qi)=>{
+    const card=document.createElement('div');
+    card.className='qcard';
+    card.innerHTML='<div class="qn">СҰРАҚ '+(qi+1)+' / '+quizList.length+'</div><p class="qtext">'+item.q+'</p>';
+    item.opts.forEach((opt,oi)=>{
+      const b=document.createElement('button');
+      b.className='opt';
+      b.textContent=opt;
+      b.addEventListener('click',()=>{
+        if(card.dataset.locked) return;
+        card.dataset.locked='1';
+        quizAnswered++;
+        const allOpts=card.querySelectorAll('.opt');
+        allOpts.forEach((el,idx)=>{
+          el.disabled=true;
+          if(idx===item.correct) el.classList.add('correct');
+          else if(idx===oi) el.classList.add('wrong');
+        });
+        if(oi===item.correct) quizScore++;
+        const ex=card.querySelector('.explain');
+        ex.classList.add('show');
+        if(quizAnswered===quizList.length) showQuizResult();
+      });
+      card.appendChild(b);
+    });
+    const ex=document.createElement('div');
+    ex.className='explain';
+    ex.textContent=item.explain;
+    card.appendChild(ex);
+    host.appendChild(card);
+  });
+}
+function showQuizResult(){
+  const box=document.querySelector('[data-quizscore]');
+  box.hidden=false;
+  const badge=document.querySelector('[data-quizbadge]');
+  const total=quizList.length;
+  let text;
+  if(quizScore===total) text='🏆 Алгоритм шебері — '+quizScore+'/'+total;
+  else if(quizScore>=Math.ceil(total*0.6)) text='👍 Үздік орындаушы — '+quizScore+'/'+total;
+  else text='💪 Жаттығуды жалғастыр — '+quizScore+'/'+total;
+  badge.textContent=text;
+  quizScore0 = quizScore; quizTotal0 = total;
+  syncScore();
+}
+document.querySelector('[data-quizretry]').addEventListener('click',renderQuiz);
+
+/* ---------------- worksheet ---------------- */
+const WORKSHEET=[
+  {title:'1-топ · Таңғы дайындық',
+   text:'Мектепке дейінгі таңғы дайындықтың дәл қадамдарын (ояну, жуыну, тамақтану, киіну, шығу) ретімен жаз.',
+   lines:5, types:['Сызықтық'], answer:'Сызықтық — қадамдар бір-бірінен кейін, қайталаусыз орындалады.', minGrade:5},
+  {title:'2-топ · Телефон заряды',
+   text:'«Телефон 20%-тен төмен болса — зарядтауды қосамын, әйтпесе — қоспаймын» ережесін алгоритм түрінде жаз.',
+   lines:4, types:['Тармақталған'], answer:'Тармақталған — шартқа (20%-тен төмен ме?) байланысты екі әрекеттің бірі таңдалады.', minGrade:5},
+  {title:'3-топ · Тазалайтын робот',
+   text:'Робот бір бағытта 10 рет «жүру — тазалау» әрекетін қайталап, бөлмені тазалайды. Алгоритмін жаз.',
+   lines:4, types:['Циклдік'], answer:'Циклдік — «жүру — тазалау» әрекеті 10 рет қайталанады.', minGrade:6},
+  {title:'4-топ · Лабиринттен шығу (қиын)',
+   text:'Робот лабиринтте алға жүреді, алдында қабырға кездессе бұрылады, және бұл бәрі мақсатқа жеткенше қайталанады. Алгоритмде қай үш түр де бар — тап та, әрқайсысына мысал көрсет.',
+   lines:6, types:['Сызықтық','Тармақталған','Циклдік'], answer:'Үш түрі де бар: жүру қадамдары (сызықтық), «егер қабырға болса — бұрыл» (тармақталған), осының бәрі мақсатқа дейін қайталанады (циклдік).', minGrade:7}
+];
+function renderWorksheet(){
+  const host=document.querySelector('[data-worksheet]');
+  const keyHost=document.querySelector('[data-answerkey]');
+  host.innerHTML=''; keyHost.innerHTML='';
+  WORKSHEET.filter(w=>w.minGrade<=currentGrade).forEach((w)=>{
+    const card=document.createElement('div');
+    card.className='wscard';
+    const linesHtml=Array.from({length:w.lines},(_,i)=>'<div>'+(i+1)+'.</div>').join('');
+    const typesHtml=w.types.map(t=>'<span>'+t+'</span>').join('');
+    card.innerHTML =
+      '<h3>'+w.title+'</h3>'+
+      '<p>'+w.text+'</p>'+
+      '<div class="wslines">'+linesHtml+'</div>'+
+      '<div class="wstypes">Түрі: '+typesHtml+'</div>';
+    host.appendChild(card);
+
+    const li=document.createElement('li');
+    li.innerHTML='<b>'+w.title+':</b> '+w.answer;
+    keyHost.appendChild(li);
+  });
+}
+
+/* ---------------- grade switcher & lesson plan ---------------- */
+const PLANS={
+  5:[['Кіріспе және ұғымдар','5 мин'],['Деңгей 1 — Сызықтық','10 мин'],['Деңгей 2 — Циклдік','12 мин'],['Квиз (3 сұрақ)','5 мин'],['Топтық тапсырма (2 тапсырма)','13 мин']],
+  6:[['Кіріспе және ұғымдар','3 мин'],['Деңгей 1 — Сызықтық','6 мин'],['Деңгей 2 — Циклдік','9 мин'],['Деңгей 3 — Тармақталған','11 мин'],['Квиз (5 сұрақ)','6 мин'],['Топтық тапсырма (3 тапсырма)','10 мин']],
+  7:[['Кіріспе және ұғымдар','2 мин'],['Деңгей 1 — Сызықтық (жылдам)','4 мин'],['Деңгей 2 — Циклдік','6 мин'],['Деңгей 3 — Тармақталған','8 мин'],['Деңгей 4 — Шебер сынағы','12 мин'],['Квиз (7 сұрақ)','6 мин'],['Топтық тапсырма (4 тапсырма)','7 мин']]
+};
+function renderPlan(){
+  const box=document.querySelector('[data-planbox]');
+  const rows=PLANS[currentGrade];
+  const total=rows.reduce((s,r)=>s+parseInt(r[1]),0);
+  box.innerHTML = '<b>'+currentGrade+'-сыныпқа арналған 45 минуттық сабақ жоспары</b>' +
+    rows.map(r=>'<div class="prow"><span>'+r[0]+'</span><span class="mono">'+r[1]+'</span></div>').join('') +
+    '<div class="prow total"><span>Барлығы</span><span class="mono">'+total+' мин</span></div>';
+}
+function applyGrade(g){
+  currentGrade=g;
+  document.querySelectorAll('[data-grade-btn]').forEach(b=>{
+    b.setAttribute('aria-pressed', b.getAttribute('data-grade-btn')===String(g) ? 'true' : 'false');
+  });
+  document.querySelectorAll('[data-min-grade]').forEach(el=>{
+    el.hidden = Number(el.getAttribute('data-min-grade')) > g;
+  });
+  renderPlan();
+  renderQuiz();
+  renderWorksheet();
+  syncScore();
+}
+document.querySelectorAll('[data-grade-btn]').forEach(b=>{
+  b.addEventListener('click',()=>applyGrade(Number(b.getAttribute('data-grade-btn'))));
+});
+applyGrade(5);
+
+} // end initGame
+</script>
+</body>
+</html>
