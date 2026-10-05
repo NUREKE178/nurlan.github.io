@@ -547,7 +547,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:.78rem;padding-top:10px
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy
+  getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, orderBy
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -588,15 +588,31 @@ function docIdFromName(name){
   return s + '#' + sessionSuffix();
 }
 
-function enterAsStudent(name){
+async function enterAsStudent(name){
   studentName = name;
   studentDocId = docIdFromName(name);
   try{ sessionStorage.setItem('algoritm_name', name); }catch(e){}
   gate.hidden = true;
   gameWrap.hidden = false;
   scoreBadge.hidden = false;
+  scoreVal.textContent = '…';
+  await restoreProgress();
   initGame();
   syncScore();
+}
+async function restoreProgress(){
+  try{
+    const snap = await getDoc(doc(db,'students',studentDocId));
+    if(snap.exists()){
+      const d = snap.data();
+      quizScore0 = d.quizScore || 0;
+      quizTotal0 = d.quizTotal || 0;
+      if(quizTotal0 > 0) quizLocked = true;
+      if(d.starsMap && typeof d.starsMap === 'object'){
+        Object.assign(levelStarsMap, d.starsMap);
+      }
+    }
+  }catch(e){ /* offline or blocked — start this session fresh, still fully playable */ }
 }
 function enterAsTeacher(){
   isTeacher = true;
@@ -641,10 +657,12 @@ function syncScore(){
     quizScore: quizScore0,
     quizTotal: quizTotal0,
     starsTotal: starsTotal,
+    starsMap: levelStarsMap,
     updatedAt: new Date().toISOString()
   }, { merge: true }).catch(()=>{ /* offline or blocked — fail quietly, UI already updated locally */ });
 }
 let quizScore0 = 0, quizTotal0 = 0;
+let quizLocked = false;
 let currentGrade = 5;
 
 /* ================= TEACHER DASHBOARD ================= */
@@ -817,7 +835,7 @@ const LEVELS={
         { grid:['##','.G','.#','.#','S#'], start:{row:4,col:0}, dir:0, cols:2, rows:5 },
         { grid:['##','G.','#.','#.','#S'], start:{row:4,col:1}, dir:0, cols:2, rows:5 }
       ] },
-  4:{ label:'Шебер (цикл+шарт)', wantIf:true, wantLoop:true, scoreMode:'construct', loopRange:[5,40], loopDefault:25,
+  4:{ label:'Шебер (цикл+шарт)', wantIf:true, wantLoop:true, scoreMode:'construct', loopRange:[2,40], loopDefault:25,
       variants:[
         { grid:['#######','#S....#','#####.#','#####.#','#####.#','##G...#','#######'], start:{row:1,col:1}, dir:1, cols:7, rows:7 },
         { grid:['#########','#S......#','#######.#','#######.#','#G#####.#','#.#####.#','#.#####.#','#.......#','#########'], start:{row:1,col:1}, dir:1, cols:9, rows:9 }
@@ -915,13 +933,26 @@ function starsHtml(n){
   return h+'</span>';
 }
 
+function resumeVariantIndex(levelNum,totalVariants){
+  let maxDone=-1;
+  for(let i=0;i<totalVariants;i++){ if(levelStarsMap[levelNum+'-'+i]!=null) maxDone=i; }
+  if(maxDone===-1) return 0;
+  return Math.min(maxDone+1, totalVariants-1);
+}
 function initLevel(levelNum){
   const L0=LEVELS[levelNum];
-  state[levelNum]={tokens:[],loopCount:L0.loopDefault||3,running:false,variant:0};
+  const resumedVariant=resumeVariantIndex(levelNum,L0.variants.length);
+  const levelAllDone = resumedVariant===L0.variants.length-1 && levelStarsMap[levelNum+'-'+resumedVariant]!=null;
+  state[levelNum]={tokens:[],loopCount:L0.loopDefault||3,running:false,variant:resumedVariant};
   buildMaze(levelNum);
   renderStrip(levelNum);
   const countEl0=document.querySelector('[data-count="'+levelNum+'"]');
   if(countEl0) countEl0.textContent=state[levelNum].loopCount;
+  if(levelAllDone){
+    const nextBtn0=document.querySelector('[data-next="'+levelNum+'"]');
+    if(nextBtn0){ nextBtn0.disabled=false; nextBtn0.textContent = levelNum<4 ? 'Келесі деңгей →' : 'Квизге өту →'; }
+    setFeedback(levelNum,'Бұл деңгей бұрын бітірілген. Қаласаң қайта ойна, немесе келесіге өт.','ok');
+  }
 
   document.querySelectorAll('.builder[data-builder="'+levelNum+'"] .chipbtn').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -1105,9 +1136,17 @@ const QUIZ=[
 let quizScore=0, quizAnswered=0, quizList=[];
 
 function renderQuiz(){
-  quizScore=0; quizAnswered=0;
-  quizList=QUIZ.filter(item=>item.minGrade<=currentGrade);
   const host=document.querySelector('[data-quiz]');
+  const retryBtn=document.querySelector('[data-quizretry]');
+  quizList=QUIZ.filter(item=>item.minGrade<=currentGrade);
+  if(quizLocked){
+    host.innerHTML='<p style="color:var(--ink-soft);font-size:.9rem;">Сіз бұл квизді бұрын тапсырдыңыз. Нәтиже төменде сақталған — қайта тапсыруға болмайды.</p>';
+    if(retryBtn) retryBtn.hidden=true;
+    showQuizResult(true);
+    return;
+  }
+  if(retryBtn) retryBtn.hidden=false;
+  quizScore=0; quizAnswered=0;
   host.innerHTML='';
   document.querySelector('[data-quizscore]').hidden=true;
   quizList.forEach((item,qi)=>{
@@ -1142,20 +1181,27 @@ function renderQuiz(){
     host.appendChild(card);
   });
 }
-function showQuizResult(){
+function showQuizResult(fromRestore){
   const box=document.querySelector('[data-quizscore]');
   box.hidden=false;
   const badge=document.querySelector('[data-quizbadge]');
-  const total=quizList.length;
+  const total = fromRestore ? quizTotal0 : quizList.length;
+  const score = fromRestore ? quizScore0 : quizScore;
   let text;
-  if(quizScore===total) text='🏆 Алгоритм шебері — '+quizScore+'/'+total;
-  else if(quizScore>=Math.ceil(total*0.6)) text='👍 Үздік орындаушы — '+quizScore+'/'+total;
-  else text='💪 Жаттығуды жалғастыр — '+quizScore+'/'+total;
+  if(total<=0) text='—';
+  else if(score===total) text='🏆 Алгоритм шебері — '+score+'/'+total;
+  else if(score>=Math.ceil(total*0.6)) text='👍 Үздік орындаушы — '+score+'/'+total;
+  else text='💪 Жаттығуды жалғастыр — '+score+'/'+total;
   badge.textContent=text;
-  quizScore0 = quizScore; quizTotal0 = total;
-  syncScore();
+  if(!fromRestore){
+    quizScore0 = quizScore; quizTotal0 = total;
+    quizLocked = true;
+    const retryBtn=document.querySelector('[data-quizretry]');
+    if(retryBtn) retryBtn.hidden=true;
+    syncScore();
+  }
 }
-document.querySelector('[data-quizretry]').addEventListener('click',renderQuiz);
+document.querySelector('[data-quizretry]').addEventListener('click',()=>{ if(!quizLocked) renderQuiz(); });
 
 /* ---------------- worksheet ---------------- */
 const WORKSHEET=[
