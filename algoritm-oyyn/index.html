@@ -328,6 +328,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:.78rem;padding-top:10px
     <a href="#level2">Деңгей 2</a>
     <a href="#level3" data-min-grade="6">Деңгей 3</a>
     <a href="#level4" data-min-grade="7">Деңгей 4 · Шебер</a>
+    <a href="#race">⚡ Жарыс</a>
     <a href="#quiz">Квиз</a>
     <a href="#worksheet">Топтық тапсырма</a>
   </nav>
@@ -481,6 +482,61 @@ footer{text-align:center;color:var(--ink-soft);font-size:.78rem;padding-top:10px
         </div>
         <div class="feedback" data-feedback="4"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ===================== RACE MODE ===================== -->
+  <section class="panel" id="race">
+    <span class="bl"></span><span class="br"></span>
+    <div class="panel-head"><h2>⚡ Жарыс режимі</h2><span class="tag amber">Досыңмен тікелей жарыс</span></div>
+    <p class="lead">Досыңды кодпен шақыр — екеуің де дәл сол лабиринтті бір мезетте шешесің. Кім бірінші жетсе, сол жеңеді және бонус ұпай алады!</p>
+
+    <div id="raceIdle">
+      <div class="controls">
+        <button class="btn run" id="raceCreateBtn">🆕 Жаңа жарыс құру</button>
+      </div>
+      <div class="controls" style="margin-top:10px;align-items:center;">
+        <input type="text" id="raceCodeInput" maxlength="4" placeholder="Код: AB3X" style="font-family:'IBM Plex Mono',monospace;text-transform:uppercase;width:120px;padding:9px 12px;border-radius:8px;border:1.5px solid var(--line-strong);background:var(--bg);color:var(--ink);text-align:center;letter-spacing:2px;">
+        <button class="btn clear" id="raceJoinBtn">Қосылу</button>
+      </div>
+      <div class="feedback" id="raceIdleMsg"></div>
+    </div>
+
+    <div id="raceWaiting" hidden style="text-align:center;padding-block:20px;">
+      <p style="color:var(--ink-soft);margin:0 0 6px;">Досыңа осы кодты айт:</p>
+      <p class="mono" id="raceCodeDisplay" style="font-size:2.4rem;font-weight:700;color:var(--accent);letter-spacing:6px;margin:0 0 6px;"></p>
+      <p style="color:var(--ink-soft);font-size:.85rem;margin:0 0 14px;">Күтудемін...</p>
+      <button class="btn clear" id="raceCancelBtn">Бас тарту</button>
+    </div>
+
+    <div id="raceRunning" hidden>
+      <div class="controls" style="justify-content:space-between;background:var(--surface-2);border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <span class="mono" id="raceMeStatus">Сен: дайын</span>
+        <span class="mono" id="raceOppStatus">Досың: дайын</span>
+      </div>
+      <div class="level-body">
+        <div class="maze-col"><div class="maze" data-grid="race" style="--cols:6;--rows:5;"></div></div>
+        <div class="builder">
+          <div class="palette">
+            <button class="chipbtn" data-racetok="FORWARD">↑ АЛҒА</button>
+            <button class="chipbtn" data-racetok="LEFT">↺ СОЛ</button>
+            <button class="chipbtn" data-racetok="RIGHT">↻ ОҢ</button>
+            <button class="chipbtn util" data-racetok="UNDO">⌫ ЖОЮ</button>
+          </div>
+          <div class="strip" id="raceStrip"><span class="empty-hint">Командаларды таңда…</span></div>
+          <div class="controls">
+            <button class="btn run" id="raceRunBtn">▶ ЖҮРГІЗУ</button>
+            <button class="btn clear" id="raceClearBtn">Тазалау</button>
+          </div>
+          <div class="feedback" id="raceFeedback"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="raceDone" hidden style="text-align:center;padding-block:20px;">
+      <p id="raceResultBig" style="font-family:'Fredoka';font-size:1.6rem;font-weight:700;margin:0 0 8px;"></p>
+      <p id="raceResultDetail" style="color:var(--ink-soft);margin:0 0 16px;"></p>
+      <button class="btn run" id="raceAgainBtn">🆕 Жаңа жарыс</button>
     </div>
   </section>
 
@@ -1271,6 +1327,213 @@ document.querySelectorAll('[data-grade-btn]').forEach(b=>{
   b.addEventListener('click',()=>applyGrade(Number(b.getAttribute('data-grade-btn'))));
 });
 applyGrade(5);
+
+/* ---------------- race mode ---------------- */
+const RACE_GRID=['...G..','......','......','......','S.....'];
+const RACE_START={row:4,col:0}, RACE_DIR=0;
+let raceCodeVal=null, raceRole=null, raceUnsub=null, raceTokens=[], raceRunningFlag=false, raceClaimed=false, raceEnteredRunning=false, raceStartedAt=0;
+
+function genRaceCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s=''; for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function buildRaceMaze(){
+  const el=document.querySelector('.maze[data-grid="race"]');
+  el.style.setProperty('--cs',CELL_PX+'px');
+  el.style.gridTemplateColumns='repeat(6,'+CELL_PX+'px)';
+  el.style.gridTemplateRows='repeat(5,'+CELL_PX+'px)';
+  el.style.width=(6*CELL_PX)+'px';
+  el.style.height=(5*CELL_PX)+'px';
+  el.innerHTML='';
+  for(let r=0;r<5;r++){
+    for(let c=0;c<6;c++){
+      const ch=RACE_GRID[r][c];
+      const cell=document.createElement('div'); cell.className='cell';
+      if(ch==='#') cell.className+=' wall';
+      if(ch==='S') cell.className+=' start-cell';
+      if(ch==='G'){ cell.className+=' goal-cell'; cell.innerHTML='<svg viewBox="0 0 24 24"><polygon points="12,1 15,9 23,9 16.5,14 19,22 12,17 5,22 7.5,14 1,9 9,9" fill="var(--success)"/></svg>'; }
+      el.appendChild(cell);
+    }
+  }
+  const robot=document.createElement('div'); robot.className='robot'; robot.innerHTML='<div class="body"></div>'; robot.style.setProperty('--cs',CELL_PX+'px');
+  el.appendChild(robot);
+  placeRaceRobot(RACE_START,RACE_DIR,false);
+}
+function placeRaceRobot(pos,dir,animate){
+  const el=document.querySelector('.maze[data-grid="race"]');
+  const robot=el.querySelector('.robot');
+  if(!robot) return;
+  const tx=pos.col*CELL_PX, ty=pos.row*CELL_PX;
+  robot.style.setProperty('--tx',tx+'px'); robot.style.setProperty('--ty',ty+'px'); robot.style.setProperty('--rot',(dir*90)+'deg');
+  if(!animate) robot.style.transition='none';
+  robot.style.transform='translate('+tx+'px,'+ty+'px) rotate('+(dir*90)+'deg)';
+  if(!animate) requestAnimationFrame(()=>{ robot.style.transition=''; });
+}
+function renderRaceStrip(){
+  const strip=document.getElementById('raceStrip');
+  strip.innerHTML='';
+  if(raceTokens.length===0){ strip.innerHTML='<span class="empty-hint">Командаларды таңда…</span>'; return; }
+  raceTokens.forEach(t=>{
+    const chip=document.createElement('span'); chip.className='chip'; chip.textContent=tokenLabel(t);
+    strip.appendChild(chip);
+  });
+}
+document.querySelectorAll('[data-racetok]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    if(raceRunningFlag) return;
+    const tok=btn.getAttribute('data-racetok');
+    if(tok==='UNDO'){ raceTokens.pop(); renderRaceStrip(); return; }
+    raceTokens.push({type:tok});
+    renderRaceStrip();
+  });
+});
+document.getElementById('raceClearBtn').addEventListener('click',()=>{
+  if(raceRunningFlag) return;
+  raceTokens=[]; renderRaceStrip();
+  placeRaceRobot(RACE_START,RACE_DIR,false);
+  document.getElementById('raceFeedback').textContent='';
+});
+document.getElementById('raceRunBtn').addEventListener('click', runRace);
+
+function runRace(){
+  if(raceRunningFlag) return;
+  const fb=document.getElementById('raceFeedback');
+  if(raceTokens.length===0){ fb.textContent='Алдымен команда таңда!'; return; }
+  const result=runProgram(raceTokens, RACE_GRID, RACE_START, RACE_DIR, 200);
+  if(result.status==='unbalanced'){ fb.textContent='Команда дұрыс жабылмады.'; return; }
+  raceRunningFlag=true;
+  placeRaceRobot(RACE_START,RACE_DIR,false);
+  const mazeEl=document.querySelector('.maze[data-grid="race"]');
+  const robotEl=mazeEl.querySelector('.robot');
+  robotEl.classList.remove('crash','win');
+  fb.textContent='Орындалып жатыр…';
+  const frames=result.frames; let i=1;
+  const runStartedAt=raceStartedAt||Date.now();
+  function tick(){
+    if(i>=frames.length){ finishRaceRun(); return; }
+    const fr=frames[i];
+    placeRaceRobot(fr.pos,fr.dir,true);
+    if(fr.type==='crash'){ robotEl.classList.add('crash'); mazeEl.classList.add('shake'); setTimeout(()=>{ mazeEl.classList.remove('shake'); finishRaceRun(); },350); return; }
+    i++; setTimeout(tick,280);
+  }
+  setTimeout(tick,200);
+  function finishRaceRun(){
+    raceRunningFlag=false;
+    if(result.status==='success'){
+      robotEl.classList.add('win');
+      fb.textContent='Жеттің!';
+      reportRaceResult(raceTokens.length, Date.now()-runStartedAt);
+    } else if(result.status==='crash'){
+      fb.textContent='Қабырғаға соғылды, қайта көр!';
+    } else {
+      fb.textContent='Мақсатқа жеткен жоқ, команданы толықтыр!';
+    }
+  }
+}
+
+async function reportRaceResult(steps,timeMs){
+  if(!raceCodeVal || raceClaimed) return;
+  raceClaimed=true;
+  const field = raceRole==='p1' ? {p1Done:true,p1Steps:steps,p1Time:timeMs} : {p2Done:true,p2Steps:steps,p2Time:timeMs};
+  const ref=doc(db,'races',raceCodeVal);
+  try{
+    const snap=await getDoc(ref);
+    const d=snap.exists()?snap.data():{};
+    const patch={...field};
+    if(!d.winner) patch.winner=raceRole;
+    await setDoc(ref, patch, {merge:true});
+  }catch(e){ /* offline — result just won't sync for this race */ }
+}
+
+function showRaceView(view){
+  ['raceIdle','raceWaiting','raceRunning','raceDone'].forEach(id=>{
+    document.getElementById(id).hidden = (id!==view);
+  });
+}
+
+document.getElementById('raceCreateBtn').addEventListener('click', async ()=>{
+  const code=genRaceCode();
+  raceCodeVal=code; raceRole='p1'; raceClaimed=false; raceEnteredRunning=false;
+  document.getElementById('raceIdleMsg').textContent='';
+  try{
+    await setDoc(doc(db,'races',code), {
+      p1Name:studentName, p1Id:studentDocId, p2Name:null, p2Id:null,
+      status:'waiting', createdAt:new Date().toISOString(), winner:null
+    });
+    document.getElementById('raceCodeDisplay').textContent=code;
+    showRaceView('raceWaiting');
+    subscribeRace(code);
+  }catch(e){
+    document.getElementById('raceIdleMsg').textContent='Жарыс құру мүмкін болмады, қайта көріңіз.';
+  }
+});
+document.getElementById('raceCancelBtn').addEventListener('click', ()=>{
+  if(raceUnsub) raceUnsub();
+  raceCodeVal=null;
+  showRaceView('raceIdle');
+});
+document.getElementById('raceJoinBtn').addEventListener('click', async ()=>{
+  const code=document.getElementById('raceCodeInput').value.trim().toUpperCase();
+  const msg=document.getElementById('raceIdleMsg');
+  if(!code){ msg.textContent='Кодты енгізіңіз.'; return; }
+  try{
+    const ref=doc(db,'races',code);
+    const snap=await getDoc(ref);
+    if(!snap.exists()){ msg.textContent='Мұндай код табылмады.'; return; }
+    const d=snap.data();
+    if(d.status!=='waiting' || d.p2Id){ msg.textContent='Бұл жарыс әлдеқашан басталған.'; return; }
+    await setDoc(ref, { p2Name:studentName, p2Id:studentDocId, status:'racing', startAt:new Date().toISOString() }, {merge:true});
+    raceCodeVal=code; raceRole='p2'; raceClaimed=false; raceEnteredRunning=false;
+    msg.textContent='';
+    subscribeRace(code);
+  }catch(e){
+    msg.textContent='Қосылу мүмкін болмады, қайта көріңіз.';
+  }
+});
+
+function subscribeRace(code){
+  if(raceUnsub) raceUnsub();
+  raceUnsub=onSnapshot(doc(db,'races',code), (snap)=>{
+    if(!snap.exists()) return;
+    const d=snap.data();
+    if(d.status==='racing' && !raceEnteredRunning){
+      raceEnteredRunning=true;
+      raceStartedAt=Date.now();
+      raceTokens=[]; renderRaceStrip();
+      buildRaceMaze();
+      showRaceView('raceRunning');
+    }
+    const meKey = raceRole==='p1' ? 'p1' : 'p2';
+    const oppKey = raceRole==='p1' ? 'p2' : 'p1';
+    const oppName = d[oppKey+'Name'] || 'Досың';
+    const meDone = d[meKey+'Done'];
+    const oppDone = d[oppKey+'Done'];
+    const meEl=document.getElementById('raceMeStatus');
+    const oppEl=document.getElementById('raceOppStatus');
+    if(meEl) meEl.textContent='Сен: '+(meDone?('✅ '+d[meKey+'Steps']+' команда'):'ойнап жатыр…');
+    if(oppEl) oppEl.textContent=oppName+': '+(oppDone?('✅ '+d[oppKey+'Steps']+' команда'):'ойнап жатыр…');
+
+    if(d.winner && document.getElementById('raceDone').hidden){
+      const iWon = d.winner===raceRole;
+      showRaceView('raceDone');
+      document.getElementById('raceResultBig').textContent = iWon ? '🏆 ЖЕҢДІҢ!' : '🤝 Жақсы жарыс болды!';
+      document.getElementById('raceResultDetail').textContent =
+        'Сен: '+(d[meKey+'Steps']!=null?d[meKey+'Steps']+' команда':'—')+' · '+oppName+': '+(d[oppKey+'Steps']!=null?d[oppKey+'Steps']+' команда':'—');
+      if(iWon){
+        levelStarsMap['race-'+code] = 3;
+        syncScore();
+        burstConfetti();
+      }
+    }
+  });
+}
+document.getElementById('raceAgainBtn').addEventListener('click', ()=>{
+  if(raceUnsub) raceUnsub();
+  raceCodeVal=null; raceTokens=[]; raceEnteredRunning=false; raceClaimed=false;
+  document.getElementById('raceCodeInput').value='';
+  showRaceView('raceIdle');
+});
 
 } // end initGame
 </script>
