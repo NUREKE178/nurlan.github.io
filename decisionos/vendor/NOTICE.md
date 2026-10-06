@@ -1,0 +1,13 @@
+# Vendored third-party code
+
+These files are vendored (not CDN-loaded) so the app has no runtime dependency
+on third-party CDNs and works offline / behind restrictive network policies.
+
+| File | Project | Version | License |
+|---|---|---|---|
+| `preact.module.js` | [Preact](https://preactjs.com/) | 10.19.6 | MIT |
+| `hooks.module.js` | Preact hooks | 10.19.6 | MIT |
+| `htm.module.js` | [htm](https://github.com/developit/htm) | 3.1.1 | Apache-2.0 |
+| `chart.umd.js` | [Chart.js](https://www.chartjs.org/) | 4.4.4 | MIT |
+
+Unmodified builds taken from each package's published npm `dist/` output.
